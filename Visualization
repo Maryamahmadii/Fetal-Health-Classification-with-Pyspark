@@ -1,0 +1,39 @@
+from pyspark.sql import SparkSession
+spark = SparkSession.builder.appName('myproj').getOrCreate()
+data = spark.read.csv('/FileStore/tables/fetal_health.csv',inferSchema=True,header=True)
+data.printSchema()
+#change the fetal_health type
+from pyspark.sql.functions import col
+data = data.withColumn("fetal_health", col("fetal_health").cast("integer"))
+#Start with visualization
+#The results are only visible in Databricks
+data.registerTempTable("df")
+display(sqlContext.sql("select * from df"))
+import matplotlib.pyplot as plt
+from pyspark.sql.functions import col
+#Output can only be rendered in Databricks
+
+x_col = "baseline value"
+y_col = "fetal_movement"
+# Convert to Pandas DataFrame
+pandas_df = data.select(col(x_col), col(y_col)).toPandas()
+
+# Create a scatter plot using Matplotlib
+plt.scatter(pandas_df[x_col], pandas_df[y_col], alpha=0.5)
+plt.xlabel(x_col)
+plt.ylabel(y_col)
+plt.title("Scatter plot of {} vs {}".format(x_col, y_col))
+plt.show()
+
+import matplotlib.pyplot as plt
+import pyspark.sql.functions as F
+
+# Assuming the dataset is loaded into a Spark dataframe called `df`
+for col in data.columns:
+    if col != "fetal_health":
+        # Create a histogram using Matplotlib
+        plt.hist(data.select(col).rdd.flatMap(lambda x: x).collect())
+        plt.title(col)
+        plt.xlabel("Value")
+        plt.ylabel("Frequency")
+        plt.show()
